@@ -16,7 +16,8 @@ pacman::p_load(
   dplyr,               # data manipulation
   tidyr,               # data manipulation
   tidyverse,           # Data management, ggplot included
-  patchwork            # graphs combination
+  patchwork,           # graphs combination
+  splines              # interpolation
 )
 
 
@@ -36,7 +37,35 @@ pacman::p_load(
   rr_table_up <- import(here("data", "rr_table_quanti.xlsx"), sheet = "Upper") 
 
 
+  ################################################################################################################################
+  #                                                      3. PARAMETERS                                                           #
+  ################################################################################################################################
+  
+  # Number of simulations
+  n <- 1000
+  
+  
+  ################################################################################################################################
+  #                                                     4. PREPARE DATA                                                          #
+  ################################################################################################################################
+  
+  # Diseases considered
+  dis_vec = c("mort", "cvd", "cancer", "diab2", "dem", "dep")
+  
+  # One unique table 
+  rr_table <- rr_table_mid %>% 
+    left_join(rr_table_low, by = c("step")) %>%
+    left_join(rr_table_up, by = c("step"))
+  
 
+
+  
+  
+  
+  
+  
+  
+  
 
 
 

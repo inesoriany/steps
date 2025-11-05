@@ -24,7 +24,7 @@ pacman::p_load(
 #                                                     2. IMPORT DATA                                                           #
 ################################################################################################################################
 
-# RR table for each food group, assigned to absolute quantities
+# RR table for each outcome
 
   # Central values
   rr_table_mid <- import(here("data", "rr_table_quanti.xlsx"), sheet = "Mid")

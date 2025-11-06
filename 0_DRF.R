@@ -93,7 +93,7 @@ for (dis in dis_vec) {
 
 rr_table_interpolated <- rr_table_long %>% 
   group_by(disease, simulation_id) %>% 
-  complete(step = full_seq(0:12000, 1)) %>% 
+  complete(step = full_seq(2000:12000, 1)) %>% 
   arrange(step) %>% 
   mutate(rr_interpolated = case_when(
     # quadratic (degree = 2)

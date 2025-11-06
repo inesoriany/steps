@@ -64,29 +64,36 @@ rr_table <- rr_table_mid %>%
 #                                             5. GENERATE RR NORMAL DISTRIBUTIONS                                              #
 ################################################################################################################################
 
+
+rr_table_long <- tibble()
 set.seed(123)
 for (dis in dis_vec) {
-  rr_table <- rr_table %>%
+  rr_distrib <- rr_table %>%
     rowwise() %>%
-    mutate(rr_distrib = list(generate_RR_distrib(get(dis),get(paste0(dis, "_low")), get(paste0(dis, "_up")),1000)))
+    mutate(
+      disease = dis,
+      simulated_rr = list(generate_RR_distrib(
+        get(dis),
+        get(paste0(dis, "_low")),
+        get(paste0(dis, "_up")),
+        1000
+      ))
+    ) %>%
+    unnest_longer(simulated_rr, indices_to = "simulation_id") %>%
+    ungroup() %>% 
+    select(1, disease, simulation_id, simulated_rr)
+  
+  rr_table_long <- bind_rows(rr_table_long, rr_distrib)
 }
 
-
-################################################################################################################################
-#                                     6. SORT RR NORMAL DISTRIBUTIONS IN ASCENDING ORDER                                       #
-################################################################################################################################
-
-rr_table <- rr_table %>% 
-  rowwise() %>% 
-  mutate(rr_distrib = list(sort(unlist(rr_distrib)))) %>%
-  ungroup()
+ 
 
 
 ################################################################################################################################
 #                                                       7. INTERPOLATION                                                       #
 ################################################################################################################################
 
-  
+
   
   
 

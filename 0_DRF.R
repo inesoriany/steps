@@ -55,7 +55,8 @@ dis_vec = c("mort", "cvd", "cancer", "diab2", "dem", "dep")
 # One unique table 
 rr_table <- rr_table_mid %>% 
   left_join(rr_table_low, by = c("step")) %>%
-  left_join(rr_table_up, by = c("step"))
+  left_join(rr_table_up, by = c("step")) %>% 
+  mutate(across(where(is.character), as.numeric))
 
 
 
@@ -64,17 +65,27 @@ rr_table <- rr_table_mid %>%
 ################################################################################################################################
 
 set.seed(123)
-for (dis in dis_vec){
-  
+for (dis in dis_vec) {
+  rr_table <- rr_table %>%
+    rowwise() %>%
+    mutate(rr_distrib = list(generate_RR_distrib(get(dis),get(paste0(dis, "_low")), get(paste0(dis, "_up")),1000)))
 }
+
+
+################################################################################################################################
+#                                     6. SORT RR NORMAL DISTRIBUTIONS IN ASCENDING ORDER                                       #
+################################################################################################################################
+
 rr_table <- rr_table %>% 
   rowwise() %>% 
-  mutate(rr_distrib = list(generate_RR_distrib(food_group, rr_mid, rr_low, rr_up)))
+  mutate(rr_distrib = list(sort(unlist(rr_distrib)))) %>%
+  ungroup()
 
-  
-  
-  
-  
+
+################################################################################################################################
+#                                                       7. INTERPOLATION                                                       #
+################################################################################################################################
+
   
   
   

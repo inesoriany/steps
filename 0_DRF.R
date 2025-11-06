@@ -86,15 +86,27 @@ for (dis in dis_vec) {
   rr_table_long <- bind_rows(rr_table_long, rr_distrib)
 }
 
- 
-
 
 ################################################################################################################################
-#                                                       7. INTERPOLATION                                                       #
+#                                                       6. INTERPOLATION                                                       #
 ################################################################################################################################
 
-
-  
+rr_table_interpolated <- rr_table_long %>% 
+  group_by(disease, simulation_id) %>% 
+  complete(step = full_seq(0:12000, 1)) %>% 
+  arrange(step) %>% 
+  mutate(rr_interpolated = case_when(
+    # quadratic (degree = 2)
+    disease %in% c("mort", "cvd")   ~ if_else(is.na(simulated_rr),spline(step, simulated_rr, xout = step, method = "fmm")$y, simulated_rr),
+    # cubic (degree = 3)
+    disease %in% c("dem")           ~ if_else(is.na(simulated_rr), spline(step, simulated_rr, xout = step, method = "natural")$y, simulated_rr),
+    # linear
+    TRUE                            ~ approx(step, simulated_rr, xout = step, method = "linear", rule = 1)$y
+  )) %>%
+  # $y, rr, take the interpolated values in y from the approx function and assign them to rr
+  mutate(rr_interpolated = if_else(step > max(step[!is.na(simulated_rr)]), NA_real_, rr_interpolated)) %>%
+  ungroup() %>% 
+  select("simulation_id", "disease", "step", "rr_interpolated")
   
 
 

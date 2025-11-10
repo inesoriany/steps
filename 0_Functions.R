@@ -35,7 +35,7 @@ generate_RR_distrib = function (RR, low, sup, N) {          # N : number of rand
 graph_sim_DRF = function (dis) {
   graph_drf_sim_dis <- ggplot(rr_table_interpolated %>% 
                                  filter(disease == dis,
-                                        step %in% 2000:12000),
+                                        step %in% 0:12000),
                                aes(x = step,
                                    y = rr_interpolated,
                                    group = simulation_id,
@@ -56,7 +56,7 @@ graph_sim_DRF = function (dis) {
 graph_DRF = function (dis) {
   graph_drf_dis <- ggplot(ic95_rr %>% 
                              filter(disease == dis,
-                                    step %in% 2000:12000),
+                                    step %in% 0:12000),
                            aes(x = step))+
     geom_ribbon(aes(ymin = rr_lci,
                     ymax = rr_uci),

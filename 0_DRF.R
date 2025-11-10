@@ -2,8 +2,14 @@
 ################ RR DISTRIBUTIONs ###############
 #################################################
 
-# Files needed :
+# Files needed:
   # rr_table_quanti.xlsx
+
+
+# Files outputted:
+
+
+
 
 
 ################################################################################################################################
@@ -113,6 +119,7 @@ rr_table_interpolated <- rr_table_long %>%
   select("simulation_id", "disease", "step", "rr_interpolated")
 
 
+
 # Random mix
 set.seed(123)
 rr_table_interpolated <- rr_table_interpolated %>%
@@ -162,59 +169,150 @@ colors_disease <- c(
 
 # All-cause mortality
   # Simulated RR normal distributions
-graph_drf_sim_mort <- graph_sim_DRF("mort")
-plot(graph_drf_sim_mort)
+  graph_drf_sim_mort <- graph_sim_DRF("mort")
+  plot(graph_drf_sim_mort)
 
   # RR mean and IC95 points
-graph_drf_mort <- graph_DRF("mort")
-plot(graph_drf_mort)
+  graph_drf_mort <- graph_DRF("mort")
+  plot(graph_drf_mort)
 
 
 
 
 # Cardiovascular disease incidence
   # Simulated RR normal distributions
-graph_drf_sim_cvd <- graph_sim_DRF ("cvd")
-plot(graph_drf_sim_cvd)
+  graph_drf_sim_cvd <- graph_sim_DRF ("cvd")
+  plot(graph_drf_sim_cvd)
 
   # RR mean and IC95 points
-graph_drf_cvd <- graph_DRF ("cvd")
-plot(graph_drf_cvd)
+  graph_drf_cvd <- graph_DRF ("cvd")
+  plot(graph_drf_cvd)
 
 
 
 
 # Cancer incidence
   # Simulated RR normal distributions
-graph_drf_sim_cancer <- graph_sim_DRF ("cancer")
-plot(graph_drf_sim_cancer)
+  graph_drf_sim_cancer <- graph_sim_DRF ("cancer")
+  plot(graph_drf_sim_cancer)
 
   # RR mean and IC95 points
-graph_drf_cancer <- graph_DRF ("cancer")
-plot(graph_drf_cancer)
+  graph_drf_cancer <- graph_DRF ("cancer")
+  plot(graph_drf_cancer)
 
 
 
 
 # Type 2 diabetes
   # Simulated RR normal distributions
-graph_drf_sim_diab2 <- graph_sim_DRF ("diab2")
-plot(graph_drf_sim_diab2)
+  graph_drf_sim_diab2 <- graph_sim_DRF ("diab2")
+  plot(graph_drf_sim_diab2)
 
   # RR mean and IC95 points
-graph_drf_diab2 <- graph_DRF ("diab2")
-plot(graph_drf_diab2)
+  graph_drf_diab2 <- graph_DRF ("diab2")
+  plot(graph_drf_diab2)
 
 
 
 # Dementia
   # Simulated RR normal distributions
-graph_drf_sim_dem <- graph_sim_DRF ("dem")
-plot(graph_drf_sim_dem)
+  graph_drf_sim_dem <- graph_sim_DRF ("dem")
+  plot(graph_drf_sim_dem)
 
   # RR mean and IC95 points
-graph_drf_dem <- graph_DRF ("dem")
-plot(graph_drf_dem)
+  graph_drf_dem <- graph_DRF ("dem")
+  plot(graph_drf_dem)
+
+
+
+# Depressive symptoms
+  # Simulated RR normal distributions
+  graph_drf_sim_dep <- graph_sim_DRF ("dep")
+  plot(graph_drf_sim_dep)
+
+  # RR mean and IC95 points
+  graph_drf_dep <- graph_DRF ("dep")
+  plot(graph_drf_dep)
+
+
+
+
+# All DRF in one plot
+  # All DRF curves simulated
+  list_drf <- list(graph_drf_sim_mort, graph_drf_sim_cvd, graph_drf_sim_cancer, graph_drf_sim_diab2, graph_drf_sim_dem,
+                  graph_drf_sim_dep)
+  
+  common_theme <- theme(
+    plot.title = element_text(size = 9, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 8),
+    axis.text = element_text(size = 7)
+  )
+  
+  list_drf <- lapply(list_drf, function(p) p + common_theme)
+  
+  combined_plot_drf <- reduce(list_drf, `+`) + plot_layout(ncol = 3)
+  
+  print(combined_plot_drf) 
+
+
+  # Mean + IC95
+  list_mean_drf <- list(graph_drf_mort, graph_drf_cvd, graph_drf_cancer, graph_drf_diab2, graph_drf_dem,
+                   graph_drf_dep)
+  
+  common_theme <- theme(
+    plot.title = element_text(size = 9, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 8),
+    axis.text = element_text(size = 7)
+  )
+  
+  list_mean_drf <- lapply(list_drf, function(p) p + common_theme)
+  
+  combined_plot_mean_drf <- reduce(list_mean_drf, `+`) + plot_layout(ncol = 3)
+  
+  print(combined_plot_mean_drf) 
+
+
+
+
+################################################################################################################################
+#                                                   8. DATA EXPORTATION                                                        #
+################################################################################################################################
+
+# Table of DRF simulated
+export(rr_table_interpolated, here("data_clean", "DRF", "rr_sim_interpolated.csv"))
+export(ic95_rr, here("data_clean", "rr_interpolated_mean.csv"))
+
+
+
+# Graphs (all DRF curves simulated)
+ggsave(here("output", "DRF", "drf_mort.png"), plot = graph_drf_sim_mort)
+ggsave(here("output", "DRF", "drf_cvd.png"), plot = graph_drf_sim_cvd)
+ggsave(here("output", "DRF", "drf_cancer.png"), plot = graph_drf_sim_cancer)
+ggsave(here("output", "DRF", "drf_diab2.png"), plot = graph_drf_sim_diab2)
+ggsave(here("output", "DRF", "drf_dem.png"), plot = graph_drf_sim_dem)
+ggsave(here("output", "DRF", "drf_dep.png"), plot = graph_drf_sim_dep)
+
+ggsave(here("output", "DRF", "drf_all.png"), plot = combined_plot_drf)
+
+
+
+# Graphs (mean + IC95)
+ggsave(here("output", "DRF", "drf_mort_mean.png"), plot = graph_drf_mort)
+ggsave(here("output", "DRF", "drf_cvd_mean.png"), plot = graph_drf_cvd)
+ggsave(here("output", "DRF", "drf_cancer_mean.png"), plot = graph_drf_cancer)
+ggsave(here("output", "DRF", "drf_diab2_mean.png"), plot = graph_drf_diab2)
+ggsave(here("output", "DRF", "drf_dem_mean.png"), plot = graph_drf_dem)
+ggsave(here("output", "DRF", "drf_dep_mean.png"), plot = graph_drf_dep)
+
+ggsave(here("output", "DRF", "drf_all_mean.png"), plot = combined_plot_mean_drf)
+
+
+
+
+
+
+
+
 
 
 

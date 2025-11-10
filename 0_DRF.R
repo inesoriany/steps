@@ -34,7 +34,7 @@ pacman::p_load(
 # RR table for each outcome
 
   # Central values
-  rr_table_mid <- import(here("data", "rr_table_quanti.xlsx"), sheet = "Mid")
+  rr_table_mid <- import(here("data", "rr_table_quanti.xlsx"), sheet = "Central")
   
   # IC95 lower
   rr_table_low <- import(here("data", "rr_table_quanti.xlsx"), sheet = "Lower")
@@ -64,10 +64,19 @@ dis_vec = c("mort", "cvd", "cancer", "diab2", "dem", "dep")
   
 # One unique table 
 rr_table <- rr_table_mid %>% 
-  left_join(rr_table_low, by = c("step")) %>%
-  left_join(rr_table_up, by = c("step")) %>% 
+  left_join(rr_table_low, by = "step") %>%
+  left_join(rr_table_up, by = "step") %>% 
   mutate(across(where(is.character), as.numeric))
-
+  
+for (dis in dis_vec) {
+  rr_table <- rr_table %>% 
+    rename(
+      !!paste0(dis, "_mid") := !!sym(paste0(dis, ".x")),
+      !!paste0(dis, "_low") := !!sym(paste0(dis, ".y")),
+      !!paste0(dis, "_up")  := !!sym(paste0(dis))
+    )
+}
+  
 
 
 ################################################################################################################################
@@ -84,8 +93,8 @@ for (dis in dis_vec) {
       disease = dis,
       simulated_rr = list(generate_RR_distrib(
         get(dis),
-        get(paste0(dis, "_low")),
-        get(paste0(dis, "_up")),
+        get(paste0(dis, ".x")),
+        get(paste0(dis, ".y")),
         1000
       ))
     ) %>%

@@ -91,19 +91,23 @@ for (dis in dis_vec) {
     rowwise() %>%
     mutate(
       disease = dis,
-      simulated_rr = list(generate_RR_distrib(
-        get(dis),
-        get(paste0(dis, ".x")),
-        get(paste0(dis, ".y")),
-        1000
-      ))
+      simulated_rr = list(
+        sort(generate_RR_distrib(                 # Sort the RR normal distributions in ascending order
+          get(paste0(dis, "_mid")),
+          get(paste0(dis, "_low")),
+          get(paste0(dis, "_up")),
+          1000
+        ))
+      )
     ) %>%
     unnest_longer(simulated_rr, indices_to = "simulation_id") %>%
-    ungroup() %>% 
+    ungroup() %>%
     select(1, disease, simulation_id, simulated_rr)
   
   rr_table_long <- bind_rows(rr_table_long, rr_distrib)
 }
+
+
 
 
 ################################################################################################################################
@@ -112,7 +116,7 @@ for (dis in dis_vec) {
 
 rr_table_interpolated <- rr_table_long %>% 
   group_by(disease, simulation_id) %>% 
-  complete(step = full_seq(0:12000, 1)) %>% 
+  complete(step = seq(0, 12000, by = 10)) %>% 
   arrange(step) %>% 
   mutate(rr_interpolated = case_when(
     # quadratic (degree = 2)
@@ -120,7 +124,8 @@ rr_table_interpolated <- rr_table_long %>%
     # cubic (degree = 3)
     disease %in% c("dem")           ~ if_else(is.na(simulated_rr), spline(step, simulated_rr, xout = step, method = "natural")$y, simulated_rr),
     # linear
-    TRUE                            ~ approx(step, simulated_rr, xout = step, method = "linear", rule = 1)$y
+    TRUE                            ~ {fit <- lm(simulated_rr ~step, data = pick(everything()))
+                                        fit$coefficients[1] + fit$coefficients[2] * step}
   )) %>%
   # $y, rr, take the interpolated values in y from the approx function and assign them to rr
   mutate(rr_interpolated = if_else(step > max(step[!is.na(simulated_rr)]), NA_real_, rr_interpolated)) %>%
@@ -274,7 +279,7 @@ colors_disease <- c(
     axis.text = element_text(size = 7)
   )
   
-  list_mean_drf <- lapply(list_drf, function(p) p + common_theme)
+  list_mean_drf <- lapply(list_mean_drf, function(p) p + common_theme)
   
   combined_plot_mean_drf <- reduce(list_mean_drf, `+`) + plot_layout(ncol = 3)
   
@@ -314,20 +319,4 @@ ggsave(here("output", "DRF", "drf_dem_mean.png"), plot = graph_drf_dem)
 ggsave(here("output", "DRF", "drf_dep_mean.png"), plot = graph_drf_dep)
 
 ggsave(here("output", "DRF", "drf_all_mean.png"), plot = combined_plot_mean_drf)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

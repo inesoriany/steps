@@ -7,7 +7,9 @@
 
 
 # Files outputted:
-
+  # rr_sim_interpolated.csv : 1000 simulations every 10 interpolated points
+  # rr_interpolated_mean.csv : mean, IC95%
+  # DRF plots
 
 
 
@@ -294,7 +296,7 @@ colors_disease <- c(
 
 # Table of DRF simulated
 export(rr_table_interpolated, here("data_clean", "DRF", "rr_sim_interpolated.csv"))
-export(ic95_rr, here("data_clean", "rr_interpolated_mean.csv"))
+export(ic95_rr, here("data_clean", "DRF", "rr_interpolated_mean.csv"))
 
 
 

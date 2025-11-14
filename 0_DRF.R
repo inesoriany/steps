@@ -56,13 +56,13 @@ source(here("0_Functions.R"))
 # Number of simulations
 n <- 1000
   
+# Diseases considered
+dis_vec = c("mort", "cvd", "cancer", "diab2", "dem", "dep")
+
 
 ################################################################################################################################
 #                                                     4. PREPARE DATA                                                          #
 ################################################################################################################################
-  
-# Diseases considered
-dis_vec = c("mort", "cvd", "cancer", "diab2", "dem", "dep")
   
 # One unique table 
 rr_table <- rr_table_mid %>% 

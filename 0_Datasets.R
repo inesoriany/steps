@@ -50,11 +50,13 @@ insee <- import(here("data", "INSEE_2019.RDS"))
 
 
 ################################################################################################################################
-#                                                    3. SETTING THE CONSTANTS                                                  #
+#                                                     3. SET PARAMETERS                                                        #
 ################################################################################################################################
 # Import parameters
 source(here("0_Parameters.R"))
 
+# Diseases considered
+dis_vec = c("mort", "cvd", "diab2", "dem")
 
 
 ################################################################################################################################
@@ -88,7 +90,7 @@ emp_subset <- emp_subset %>%
 
 # Daily steps
 emp_subset <- emp_subset %>% 
-  mutate(day_step = case_when(
+  mutate(step = case_when(
     sexe == "Male"     ~ nbkm_walking/step_length_men,
     sexe == "Female"   ~ nbkm_walking/step_length_women
   ))
@@ -146,16 +148,15 @@ emp_subset <-  emp_subset %>%
 
 
 # Calculate incidence rates
-dis_incidence <- c("cc_incidence", "dem_incidence", "bc_incidence", "cvd_incidence", "diab2_incidence")
-
-for (i in 1:nrow(emp_subset)) {
-  for(j in dis_incidence) {
-    if (!is.na(emp_subset[i, "pop_age_sex"])) {
-      emp_subset[i, paste0(j, "_rate")] <- emp_subset[i, j] / emp_subset[i, "pop_age_sex"]
-    } else {
-      emp_subset[i, paste0(j, "_rate")] <- NA        
-      }
-  }
+for (dis in dis_vec){
+  emp_subset <- emp_subset %>%
+    mutate(
+      !!paste0(dis, "_rate") := if_else(
+        !is.na(pop_age_sex),
+        .data[[paste0(dis, "_incidence")]] / pop_age_sex,
+        NA_real_
+      )
+    )
 }
 
 

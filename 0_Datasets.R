@@ -76,10 +76,6 @@ emp_subset <- emp %>%
     mdisttot_fin1
   )
 
-# Week time spent walking (min)
-emp_subset <- emp_subset %>% 
-  mutate(week_time = 7*nbkm_walking_lower*60/walk_speed) %>% 
-  mutate(week_time_upper = 7*nbkm_walking_upper*60/walk_speed)
 
 # Re-write nbkm_walking, easier to be used in functions
 emp_subset <- emp_subset %>%
@@ -87,8 +83,20 @@ emp_subset <- emp_subset %>%
 
 # Re-write sexe as female and male and convert as factors
   mutate(sexe = as.character(sexe)) %>%                                 # Conversion in character for function to work well
-  mutate(sexe = fct_recode(sexe, "male" = "1", "female" = "2")) %>%     # Replacing
-  rename(sex = sexe) 
+  mutate(sexe = fct_recode(sexe, "Male" = "1", "Female" = "2"))         # Replacing
+
+
+# Daily steps
+emp_subset <- emp_subset %>% 
+  mutate(day_step = case_when(
+    sexe == "Male"     ~ nbkm_walking/step_length_men,
+    sexe == "Female"   ~ nbkm_walking/step_length_women
+  ))
+
+# Day time spent walking (min)
+emp_subset <- emp_subset %>% 
+  mutate(day_time = nbkm_walking*60/walk_speed) %>% 
+  mutate(day_time_upper = nbkm_walking_upper*60/walk_speed)
 
 
 # Create age categories
@@ -104,10 +112,14 @@ emp_subset <- emp_subset %>%
 
 
 # Add population counts per sex
+diseases <- diseases %>% 
+  rename(sexe = sex) %>% 
+  mutate(sexe = fct_recode(sexe, "Male" = "male", "Female" = "female"))         # Replacing
+
 emp_subset <- emp_subset %>% 
   left_join(
-      diseases %>% select(pop_age_grp, sex, age_grp.x),    # Matching columns
-      by = c("sex", "age_grp.x")                           # Fill the variables depending on sex and age group
+      diseases %>% select(pop_age_grp, sexe, age_grp.x),    # Matching columns
+      by = c("sexe", "age_grp.x")                           # Fill the variables depending on sex and age group
     ) %>% 
   rename(pop_age_sex = pop_age_grp)
 
@@ -115,18 +127,11 @@ emp_subset <- emp_subset %>%
 # Add diseases incidences
 emp_subset <- emp_subset %>% 
   left_join(
-    diseases %>% select(cc_incidence, dem_incidence, bc_incidence, cvd_incidence, diab2_incidence, sex, age_grp.x),    # Matching columns
-    by = c("sex", "age_grp.x")                                                                                         # Fill the variables depending on sex and age group
+    diseases %>% select(cc_incidence, dem_incidence, bc_incidence, cvd_incidence, diab2_incidence, sexe, age_grp.x),    # Matching columns
+    by = c("sexe", "age_grp.x")                                                                                         # Fill the variables depending on sex and age group
   ) 
 
 # Add mortality rates
-emp_subset <- emp_subset %>% 
-  rename(sexe = sex) %>%                                                      # Rename to match INSEE sexe columns
-  mutate(sexe = as.factor(sexe)) %>% 
-  mutate(sexe = fct_recode(sexe, "Male" = "male", "Female" = "female")) %>%   # Rename to match INSEE sexe
-  mutate(sexe = fct_relevel(sexe, "Male", "Female"))
-
-
 emp_subset <- emp_subset %>% 
   left_join(
     insee %>% select(MR, sexe, age),       # Matching columns
@@ -216,8 +221,8 @@ export(emp_subset, here("data_clean", "EMP_walkers.xlsx"))
 emp_drivers <- emp_subset %>% 
   select(-nbkm_walking,
          -nbkm_walking_upper,
-         -week_time,
-         -week_time_upper)
+         -day_time,
+         -day_time_upper)
 
 
 # Associate drive speed
@@ -230,9 +235,17 @@ emp_drivers <- emp_drivers %>%
   )
 
 
-# Week time spent walking if those car distances were walked (min)
+# Day time spent walking if those car distances were walked (min)
 emp_drivers <- emp_drivers %>% 
-  mutate(week_time_shift = 7*mdisttot_fin1*60 / walk_speed)
+  mutate(day_time_shift = mdisttot_fin1*60 / walk_speed)
+
+
+# Daily steps if those car distances were walked
+emp_drivers <- emp_drivers %>% 
+  mutate(day_step_shift = case_when(
+    sexe == "Male"     ~ mdisttot_fin1/step_length_men,
+    sexe == "Female"   ~ mdisttot_fin1/step_length_women
+  ))
 
 
 

@@ -15,32 +15,36 @@ interpolate_rr <- function(df, disease, metric) {
   
   column <- paste0(disease, "_", metric)
   
+  # Select the corresponding RR column
   df_sub <- df %>%
     filter(disease == !!disease) %>%
     select(step, rr = all_of(column))
   
-  # compléter les steps
+  # Complete steps
   df_complete <- df_sub %>% complete(step = seq(0, 12000, by = 10))
   
+  # Existing points
   x <- df_complete$step[!is.na(df_complete$rr)]
   y <- df_complete$rr[!is.na(df_complete$rr)]
   
+  # Interpolation
   interp <- case_when(
     # Quadratic model
     disease %in% c("mort", "cvd") ~ spline(x, y, xout = df_complete$step, method = "fmm")$y,
     # Cubic model
     disease == "dem"              ~ spline(x, y, xout = df_complete$step, method = "natural")$y,
     # Linear model
-    TRUE                          ~ predict(lm(y ~ x), newdata = data.frame(x = df_complete$step))
+    TRUE                          ~ approx(x, y, xout = df_complete$step, method = "linear", rule = 2)$y
   )
   
-  df_complete$rr_interpolated <- interp
-  df_complete$disease <- disease
-  df_complete$metric <- metric
+  # Add the interpolated column
+  df_complete <- df_complete %>%
+    mutate(rr_interpolated = interp,
+           disease = disease,
+           metric = metric)
   
   return(df_complete)
 }
-
 
 
 
@@ -137,9 +141,9 @@ reduction_risk = function(data, dis, bound, data_rr) {
     
     # To calculate the upper bound of reduction of the relative risk, use RR lower bound because the decrease will be higher 
     rr_ref <- case_when(
-      bound == "low" ~ rr0$low,      # réduction max → RR min observé → up = plus petit RR
-      bound == "up"  ~ rr0$up,     # réduction min → RR max observé → low = plus grand RR
-      TRUE           ~ rr0$mid      # central
+      bound == "low" ~ rr0$low,      
+      bound == "up"  ~ rr0$up,      
+      TRUE           ~ rr0$mid      
     )
       rr_ref <- as.numeric(rr_ref)
       

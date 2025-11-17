@@ -23,21 +23,21 @@ rural_car_speed <- 60
 
 ## DISABILITY WEIGHTS ----
 
-dem_dw <-0.1518996
-dem_dw_lb <-0.1250537
-dem_dw_ub <-0.1758752
+dem_dw_mid <-0.1518996
+dem_dw_low <-0.1250537
+dem_dw_up <-0.1758752
 
-cvd_dw <-0.0526328
-cvd_dw_lb <-0.04023609
-cvd_dw_ub <-0.0645608
+cvd_dw_mid <-0.0526328
+cvd_dw_low <-0.04023609
+cvd_dw_up <-0.0645608
 
-diab2_dw <- 0.06806817
-diab2_dw_lb <-0.0504114
-diab2_dw_ub <-0.08533913
+diab2_dw_mid <- 0.06806817
+diab2_dw_low <-0.0504114
+diab2_dw_up <-0.08533913
 
-mort_dw <- 1
-mort_dw_lb <- 1
-mort_dw_ub <- 1
+mort_dw_mid <- 1
+mort_dw_low <- 1
+mort_dw_up <- 1
 
 
 

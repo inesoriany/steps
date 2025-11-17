@@ -518,7 +518,7 @@ prop_walkers_step <- ggplot(proportion_step, aes(x = step_grp, y = proportion)) 
 prop_walkers_step
 
 # Export plot
-ggsave(here("output", "Plots", "Description", "plot_prop_walkers_km.png"), plot = prop_walkers_km)
+ggsave(here("output", "Plots", "Description", "plot_prop_walkers_step.png"), plot = prop_walkers_step)
 
 
 

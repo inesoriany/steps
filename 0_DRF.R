@@ -121,7 +121,8 @@ for (dis in dis_vec) {
 
   # Interpolation
 rr_central_list <- list()
-  
+
+set.seed(456)
 for (dis in dis_vec) {
   for (metric in c("mid", "low", "up")) {
     rr_central_list[[paste0(dis, "_", metric)]] <- interpolate_rr(rr_table, dis, metric)
@@ -136,9 +137,7 @@ rr_central_table <- rr_central_full %>%
     names_from = metric,          
     values_from = rr_interpolated
   ) %>%
-  arrange(disease, step)
-
-
+  arrange(disease, step) 
 
 
 

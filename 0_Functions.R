@@ -6,7 +6,7 @@
 
 ################################################################################################################################
 ################################################################################################################################
-#                                                   1. DRF & RESAMPLING                                                        #
+#                                                   0. DRF & RESAMPLING                                                        #
 ################################################################################################################################
 ################################################################################################################################
 
@@ -32,8 +32,8 @@ generate_RR_distrib = function (RR, low, sup, N) {          # N : number of rand
 
 
 # FUNCTION graph_sim_DRF : Graphical representation of the n possible DRF from normal distributions
-graph_sim_DRF = function (dis) {
-  graph_drf_sim_dis <- ggplot(rr_table_interpolated %>% 
+graph_sim_DRF = function (dis, data) {
+  graph_drf_sim_dis <- ggplot(data %>% 
                                  filter(disease == dis,
                                         step %in% 0:12000),
                                aes(x = step,
@@ -53,37 +53,163 @@ graph_sim_DRF = function (dis) {
 
 
 # FUNCTION graph_DRF : Graphical representation of the mean DRF (with IC95)
-graph_DRF = function (dis) {
-  graph_drf_dis <- ggplot(ic95_rr %>% 
-                             filter(disease == dis,
-                                    step %in% 0:12000),
-                           aes(x = step))+
-    geom_ribbon(aes(ymin = rr_lci,
-                    ymax = rr_uci),
-                fill = colors_disease[dis],
-                alpha = 0.3)+
-    geom_line(aes(y = rr_mean),
+graph_DRF <- function(dis, data, rr_mean, rr_lci, rr_uci) {
+  graph_drf_dis <- data %>%
+    filter(disease == dis, step %in% 0:12000) %>%
+    ggplot(aes(x = step)) +
+    geom_ribbon(aes(
+      ymin = !!sym(rr_lci),
+      ymax = !!sym(rr_uci)
+    ),
+    fill = colors_disease[dis],
+    alpha = 0.3
+    ) +
+    geom_line(aes(y = !!sym(rr_mean)),
               color = colors_disease[dis],
-              linewidth
-              = 1)+
-    labs(title = names_disease [dis],
-         x = "Steps per day",
-         y = "RR")+
+              linewidth = 1) +
+    labs(
+      title = names_disease[dis],
+      x = "Steps per day",
+      y = "RR"
+    ) +
     theme(legend.position = "none")
- 
-  return(graph_drf_dis) 
+  
+  return(graph_drf_dis)
 }
 
 
 
 
+################################################################################################################################
+################################################################################################################################
+#                                               1. HEALTH IMPACT ASSESSMENT                                                    #
+################################################################################################################################
+################################################################################################################################
+
+
+
+##############################################################
+#                DISEASE REDUCTION RISK                      #
+##############################################################
+
+## DISEASE RISK REDUCTION ----
+# FUNCTION reduction_risk : Calculate the disease risk reduction percentage for each individual with a linear regression
+# (% of decrease in disease risk comparing to the baseline : if people did not walk)
+
+reduction_risk = function(data, dis, bound, data_rr) {
+    rr_obs <- sym(paste0(dis, "_rr"))  
+  
+    rr0 <- data_rr %>% 
+      filter(step == 0, disease == dis)
+    
+    # To calculate the upper bound of reduction of the relative risk, use RR lower bound because the decrease will be higher 
+    rr_ref <- case_when(
+      bound == "low" ~ rr0$up,      # réduction max → RR min observé → up = plus petit RR
+      bound == "up"  ~ rr0$low,     # réduction min → RR max observé → low = plus grand RR
+      TRUE           ~ rr0$mid      # central
+    )
+      rr_ref <- as.numeric(rr_ref)
+      
+      # Risk reduction
+    data <- data %>%
+      mutate(
+        !!paste0(dis, "_reduction_risk") := 1 - (!!rr_obs / rr_ref)
+      )
+      
+    return(data)
+}
+    
+
+
+
+## REDUCED DISEASE INCIDENCE ----
+# FUNCTION reduc_incidence : Calculate the reduced disease incidence (number of prevented new cases)
+reduc_incidence = function (data, incidence_rate, reduction_risk, dis) {
+  for (i in 1:nrow(data)) {
+    data[i, paste0(dis,"_reduc_incidence")] <- data[i, incidence_rate] * data[i, reduction_risk]
+  }
+  if (!is.na(data[i, paste0(dis,"_reduc_incidence")]) & data[i, paste0(dis,"_reduc_incidence")] > 0.40) {             
+    data[i, paste0(dis,"_reduc_incidence")] <-  0.40                                    # cap reduction to 40%
+  }
+  return(data)
+}
+
+
+
+##############################################################
+#                           DALY                             #
+##############################################################
+# Goal : To know the number of sick or death years prevented for each individual by walking
+
+#FUNCTION daly_IC : Calculate DALY (Disability-Adjusted Life Years) for each disease
+daly = function(data, dis, bound) {
+  data[[paste0(dis, "_daly")]] <- data$years_remaining * get((paste0(dis, "_dw_", bound))) * data[[paste0(dis, "_reduc_incidence")]]
+  return(data)
+}
 
 
 
 
+##############################################################
+#                      ECONOMIC IMPACT                       #
+##############################################################
+
+## MEDICAL COSTS ----
+# FUNCTION medic_costs : Calculate the medical costs associated with the reduced disease incidence for each individual
+medic_costs = function(data, dis) {
+  data [[paste0(dis, "_medic_costs")]] <- get(paste0(dis, "_cost")) * data[[paste0(dis, "_reduc_incidence")]]
+  return(data)
+}
 
 
 
+##############################################################
+#                        CALCULATE HIA                       #
+##############################################################
+
+# FUNCTION calc_HIA : Calculate the disease reduction percentage, reduced incidence, DALY and medical costs prevented for each individual
+calc_HIA = function(data, bound, data_rr, dis_vec){
+  
+  for (dis in dis_vec) {
+    
+    # 1. Percentage of disease decrease 
+    data <- reduction_risk(data, dis, bound, data_rr)
+    
+    # 2. Reduced incidence
+    dis_incidence_rate <- paste0(dis, "_rate")
+    dis_reduction_risk <- paste0(dis, "_reduction_risk")
+    
+    data <- reduc_incidence(data, dis_incidence_rate, dis_reduction_risk, dis)
+    
+    # 3. DALY prevented  
+    data <- daly(data, dis, bound)
+    
+    # 4. Medical costs prevented
+    data <- medic_costs(data, dis)
+  }
+  
+  return(data)
+}
+
+
+
+
+##############################################################
+#                        HIA OUTCOMES                        #
+##############################################################
+# FUNCTION burden_prevented : Total of prevented cases, DALY and saved costs, for each disease
+burden_prevented = function(data, dis, group){
+  
+  dis_burden <- data %>% 
+    group_by(across(all_of(group))) %>% 
+    summarise(tot_cases = survey_total(!!sym(paste0(dis, "_reduc_incidence")), na.rm = TRUE),       # Total of prevented cases per disease
+              tot_daly = survey_total(!!sym(paste0(dis, "_daly")), na.rm = TRUE),                 # Total of prevented DALY per disease
+              tot_medic_costs = survey_total(!!sym(paste0(dis, "_medic_costs")), na.rm = TRUE)    # Total of saved medical costs per disease
+    ) %>%             
+    mutate(disease = dis)
+  
+  return(dis_burden)
+}
 
 
 

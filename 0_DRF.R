@@ -117,73 +117,33 @@ for (dis in dis_vec) {
 #                                                       6. INTERPOLATION                                                       #
 ################################################################################################################################
 
-# RR Central values interpolation
-
-  # Data preparation : pivot longer and disease column
-  rr_long <- rr_table %>%
-    pivot_longer(
-      cols = matches(paste(dis_vec, collapse = "|")),
-      names_to = c("disease", "metric"),
-      names_pattern = "(.*)_(.*)",
-      values_to = "rr"
-    )
-
+# RR Central values interpolation ----
 
   # Interpolation
-rr_central_long <- rr_long %>% 
-  nest_by(disease, metric) %>% 
-  mutate(
-    data = list(
-      data %>%
-        complete(step = seq(0, 12000, by = 10)) %>%
-        arrange(step)
-    )
+rr_central_list <- list()
+  
+for (dis in dis_vec) {
+  for (metric in c("mid", "low", "up")) {
+    rr_central_list[[paste0(dis, "_", metric)]] <- interpolate_rr(rr_table, dis, metric)
+  }
+}
+
+rr_central_full <- bind_rows(rr_central_list)
+
+rr_central_table <- rr_central_full %>%
+  pivot_wider(
+    id_cols = c(step, disease),
+    names_from = metric,          
+    values_from = rr_interpolated
   ) %>%
-  mutate(
-    data = list({
-      df <- data
-      x <- df$step[!is.na(df$rr)]
-      y <- df$rr[!is.na(df$rr)]
-      interp <- case_when(
-        # quadratic (degree = 2)
-        disease %in% c("mort", "cvd") ~
-          spline(x, y, xout = df$step, method = "fmm")$y,
-        # cubic (degree = 3)
-        disease == "dem" ~
-          spline(x, y, xout = df$step, method = "natural")$y,
-        # linear
-        TRUE ~ {
-          fit <- lm(y ~ x)
-          predict(fit, newdata = data.frame(x = df$step))
-        }
-      )
-      df %>%
-        mutate(rr_interpolated = if_else(is.na(rr), interp, rr))
-    })
-  ) %>%
-  ungroup() %>%
-  unnest(data)
-
-
-
-rr_central_table <- rr_central_long %>%
-  mutate(
-    mid  = if_else(metric == "mid",  rr_interpolated, NA_real_),
-    low  = if_else(metric == "low",  rr_interpolated, NA_real_),
-    up   = if_else(metric == "up",   rr_interpolated, NA_real_)
-  ) %>%
-  group_by(step, disease) %>%
-  summarise(
-    mid     = first(na.omit(mid)),
-    low     = first(na.omit(low)),
-    up      = first(na.omit(up)),
-    .groups = "drop"
-  )
+  arrange(disease, step)
 
 
 
 
-# RR normal distribution interpolation
+
+
+# RR normal distribution interpolation ----
 rr_table_interpolated <- rr_table_long %>% 
   group_by(disease, simulation_id) %>% 
   complete(step = seq(0, 12000, by = 100)) %>% 

@@ -181,6 +181,36 @@ for (dis in dis_vec) {
            medic_costs_low = burden_low[,"tot_medic_costs"], medic_costs_up = burden_up[,"tot_medic_costs"])
 
 
+  
+  
+##############################################################
+#                    ECONOMIC IMPACT (2)                     #
+##############################################################
+  
+  
+## SOCIAL COSTS (intangible)----
+  # Add social costs
+  burden_IC <- burden_IC %>% 
+    mutate(tot_soc_costs = tot_daly*vsl,
+           soc_costs_low = daly_low*vsl,
+           soc_costs_up = daly_up*vsl)
+  
+  # Reorganize columns
+  burden_IC <- burden_IC %>% 
+    select(disease,
+           tot_cases, tot_cases_se, cases_low, cases_up,
+           tot_daly, tot_daly_se, daly_low, daly_up,
+           tot_medic_costs, tot_medic_costs_se, medic_costs_low, medic_costs_up,
+           tot_soc_costs, soc_costs_low, soc_costs_up) %>% 
+    mutate(disease = recode_factor(disease, 
+                                   bc = "Breast cancer", 
+                                   cc="Colon cancer" , 
+                                   cvd ="CVD" , 
+                                   dem ="Dementia",
+                                   diab2 ="T2 Diabetes" , 
+                                   dep = "Depression",
+                                   mort ="Mortality")) 
+  
     
 
 

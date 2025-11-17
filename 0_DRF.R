@@ -7,6 +7,7 @@
 
 
 # Files outputted:
+  # rr_central_interpolated.rds
   # rr_sim_interpolated.rds : 1000 simulations every 10 interpolated points
   # rr_interpolated_mean.csv : mean, IC95%
   # DRF plots
@@ -116,6 +117,73 @@ for (dis in dis_vec) {
 #                                                       6. INTERPOLATION                                                       #
 ################################################################################################################################
 
+# RR Central values interpolation
+
+  # Data preparation : pivot longer and disease column
+  rr_long <- rr_table %>%
+    pivot_longer(
+      cols = matches(paste(dis_vec, collapse = "|")),
+      names_to = c("disease", "metric"),
+      names_pattern = "(.*)_(.*)",
+      values_to = "rr"
+    )
+
+
+  # Interpolation
+rr_central_long <- rr_long %>% 
+  nest_by(disease, metric) %>% 
+  mutate(
+    data = list(
+      data %>%
+        complete(step = seq(0, 12000, by = 10)) %>%
+        arrange(step)
+    )
+  ) %>%
+  mutate(
+    data = list({
+      df <- data
+      x <- df$step[!is.na(df$rr)]
+      y <- df$rr[!is.na(df$rr)]
+      interp <- case_when(
+        # quadratic (degree = 2)
+        disease %in% c("mort", "cvd") ~
+          spline(x, y, xout = df$step, method = "fmm")$y,
+        # cubic (degree = 3)
+        disease == "dem" ~
+          spline(x, y, xout = df$step, method = "natural")$y,
+        # linear
+        TRUE ~ {
+          fit <- lm(y ~ x)
+          predict(fit, newdata = data.frame(x = df$step))
+        }
+      )
+      df %>%
+        mutate(rr_interpolated = if_else(is.na(rr), interp, rr))
+    })
+  ) %>%
+  ungroup() %>%
+  unnest(data)
+
+
+
+rr_central_table <- rr_central_long %>%
+  mutate(
+    mid  = if_else(metric == "mid",  rr_interpolated, NA_real_),
+    low  = if_else(metric == "low",  rr_interpolated, NA_real_),
+    up   = if_else(metric == "up",   rr_interpolated, NA_real_)
+  ) %>%
+  group_by(step, disease) %>%
+  summarise(
+    mid     = first(na.omit(mid)),
+    low     = first(na.omit(low)),
+    up      = first(na.omit(up)),
+    .groups = "drop"
+  )
+
+
+
+
+# RR normal distribution interpolation
 rr_table_interpolated <- rr_table_long %>% 
   group_by(disease, simulation_id) %>% 
   complete(step = seq(0, 12000, by = 100)) %>% 
@@ -184,76 +252,118 @@ colors_disease <- c(
 
 
 # All-cause mortality
+  # Central value
+  graph_drf_central_mort <- graph_DRF("mort", rr_central_table, "mid", "low", "up")
+  plot(graph_drf_central_mort)
+  
   # Simulated RR normal distributions
-  graph_drf_sim_mort <- graph_sim_DRF("mort")
+  graph_drf_sim_mort <- graph_sim_DRF("mort", rr_table_interpolated)
   plot(graph_drf_sim_mort)
 
   # RR mean and IC95 points
-  graph_drf_mort <- graph_DRF("mort")
+  graph_drf_mort <- graph_DRF("mort", ic95_rr, "rr_mean", "rr_lci", "rr_uci")
   plot(graph_drf_mort)
 
 
 
 
 # Cardiovascular disease incidence
+  # Central value
+  graph_drf_central_cvd <- graph_DRF("cvd", rr_central_table, "mid", "low", "up")
+  plot(graph_drf_central_cvd)
+  
   # Simulated RR normal distributions
-  graph_drf_sim_cvd <- graph_sim_DRF ("cvd")
+  graph_drf_sim_cvd <- graph_sim_DRF ("cvd", rr_table_interpolated)
   plot(graph_drf_sim_cvd)
 
   # RR mean and IC95 points
-  graph_drf_cvd <- graph_DRF ("cvd")
+  graph_drf_cvd <- graph_DRF ("cvd", ic95_rr, "rr_mean", "rr_lci", "rr_uci")
   plot(graph_drf_cvd)
 
 
 
 
 # Cancer incidence
+  # Central value
+  graph_drf_central_cancer <- graph_DRF("cancer", rr_central_table, "mid", "low", "up")
+  plot(graph_drf_central_cancer)
+  
   # Simulated RR normal distributions
-  graph_drf_sim_cancer <- graph_sim_DRF ("cancer")
+  graph_drf_sim_cancer <- graph_sim_DRF ("cancer", rr_table_interpolated)
   plot(graph_drf_sim_cancer)
 
   # RR mean and IC95 points
-  graph_drf_cancer <- graph_DRF ("cancer")
+  graph_drf_cancer <- graph_DRF ("cancer", ic95_rr, "rr_mean", "rr_lci", "rr_uci")
   plot(graph_drf_cancer)
 
 
 
 
 # Type 2 diabetes
+  # Central value
+  graph_drf_central_diab2 <- graph_DRF("diab2", rr_central_table, "mid", "low", "up")
+  plot(graph_drf_central_diab2)
+  
   # Simulated RR normal distributions
-  graph_drf_sim_diab2 <- graph_sim_DRF ("diab2")
+  graph_drf_sim_diab2 <- graph_sim_DRF ("diab2", rr_table_interpolated)
   plot(graph_drf_sim_diab2)
 
   # RR mean and IC95 points
-  graph_drf_diab2 <- graph_DRF ("diab2")
+  graph_drf_diab2 <- graph_DRF ("diab2", ic95_rr, "rr_mean", "rr_lci", "rr_uci")
   plot(graph_drf_diab2)
 
 
 
 # Dementia
+  # Central value
+  graph_drf_central_dem <- graph_DRF("dem", rr_central_table, "mid", "low", "up")
+  plot(graph_drf_central_dem)
+  
   # Simulated RR normal distributions
-  graph_drf_sim_dem <- graph_sim_DRF ("dem")
+  graph_drf_sim_dem <- graph_sim_DRF ("dem", rr_table_interpolated)
   plot(graph_drf_sim_dem)
 
   # RR mean and IC95 points
-  graph_drf_dem <- graph_DRF ("dem")
+  graph_drf_dem <- graph_DRF ("dem", ic95_rr, "rr_mean", "rr_lci", "rr_uci")
   plot(graph_drf_dem)
 
 
 
 # Depressive symptoms
+  # Central value
+  graph_drf_central_dep <- graph_DRF("dep", rr_central_table, "mid", "low", "up")
+  plot(graph_drf_central_dep)
+  
   # Simulated RR normal distributions
-  graph_drf_sim_dep <- graph_sim_DRF ("dep")
+  graph_drf_sim_dep <- graph_sim_DRF ("dep", rr_table_interpolated)
   plot(graph_drf_sim_dep)
 
   # RR mean and IC95 points
-  graph_drf_dep <- graph_DRF ("dep")
+  graph_drf_dep <- graph_DRF ("dep", ic95_rr, "rr_mean", "rr_lci", "rr_uci")
   plot(graph_drf_dep)
 
 
 
 
 # All DRF in one plot
+  # All DRF central values curves
+  list_central_drf <- list(graph_drf_central_mort, graph_drf_central_cvd, graph_drf_central_cancer, graph_drf_central_diab2, graph_drf_central_dem,
+                   graph_drf_central_dep)
+  
+  common_theme <- theme(
+    plot.title = element_text(size = 9, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 8),
+    axis.text = element_text(size = 7)
+  )
+  
+  list_central_drf <- lapply(list_central_drf, function(p) p + common_theme)
+  
+  combined_plot_central_drf <- reduce(list_central_drf, `+`) + plot_layout(ncol = 3)
+  
+  print(combined_plot_central_drf) 
+  
+  
+  
   # All DRF curves simulated
   list_drf <- list(graph_drf_sim_mort, graph_drf_sim_cvd, graph_drf_sim_cancer, graph_drf_sim_diab2, graph_drf_sim_dem,
                   graph_drf_sim_dep)
@@ -295,8 +405,21 @@ colors_disease <- c(
 ################################################################################################################################
 
 # Table of DRF simulated
+export(rr_central_table, here("data_clean", "DRF", "rr_central_interpolated.rds"))
 export(rr_table_interpolated, here("data_clean", "DRF", "rr_sim_interpolated.rds"))
 export(ic95_rr, here("data_clean", "DRF", "rr_interpolated_mean.csv"))
+
+
+
+# Graphs (all central DRF curves)
+ggsave(here("output", "DRF", "drf_central_mort.png"), plot = graph_drf_central_mort)
+ggsave(here("output", "DRF", "drf_central_cvd.png"), plot = graph_drf_central_cvd)
+ggsave(here("output", "DRF", "drf_central_cancer.png"), plot = graph_drf_central_cancer)
+ggsave(here("output", "DRF", "drf_central_diab2.png"), plot = graph_drf_central_diab2)
+ggsave(here("output", "DRF", "drf_central_dem.png"), plot = graph_drf_central_dem)
+ggsave(here("output", "DRF", "drf_central_dep.png"), plot = graph_drf_central_dep)
+
+ggsave(here("output", "DRF", "central_drf_all.png"), plot = combined_plot_central_drf)
 
 
 
